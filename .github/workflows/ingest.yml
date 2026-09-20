@@ -1,0 +1,25 @@
+name: Ingesta de noticias
+
+on:
+  schedule:
+    # 11:00 UTC = 08:00 ART (Argentina no tiene horario de verano
+    # desde 2009, así que este offset es fijo todo el año).
+    - cron: "0 11 * * *"
+  workflow_dispatch: {} # para poder correrlo manualmente y testear
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm ci
+
+      - run: npm run ingest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
