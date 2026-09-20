@@ -15,14 +15,25 @@ proyecto: solo ingesta y persistencia, sin frontend todavía.
 - Una fuente rota no frena a las demás: el error queda logueado y el
   resto de la corrida sigue.
 
-## Lo que NO hice (a propósito, no por olvido)
+## Estado de las fuentes (actualizado 20/9/2026, Sesión 1)
 
-No completé `feed_url` para Infobae, Ámbito, Bloomberg Línea, Olé,
-ESPN ni TyC Sports porque no encontré/pude verificar un feed RSS real
-para ninguna en la búsqueda que hice. Quedan en `supabase/schema.sql`
-como filas inactivas (`active = false`, `feed_url = null`) para que
-las completes vos cuando confirmes la URL real, o las marques como
-`source_type = 'scrape'` si terminan sin RSS (ver más abajo).
+Confirmadas en vivo y activas (fetch real, HTTP 200, XML válido):
+
+- **Ades — Parte Diario**: `https://albertoades.substack.com/feed`
+- **Infobae Economía**: `https://www.infobae.com/arc/outboundfeeds/rss/category/economia/`
+- **Ámbito Economía**: `https://www.ambito.com/rss/pages/economia.xml`
+- **Olé**: `https://www.ole.com.ar/rss/ultimas-noticias`
+
+Sin RSS confirmado, quedan inactivas (`active = false`, `feed_url =
+null`) en `supabase/schema.sql`:
+
+- **Bloomberg Línea**: no encontramos ningún feed documentado ni por búsqueda.
+- **ESPN Argentina**: `espn.com.ar/rss/...` redirige a una URL rota (http, 302 a vacío). No probamos el feed general de espndeportes.espn.com porque no es específicamente "ESPN Argentina".
+- **TyC Sports**: `/feed` y `/arc/outboundfeeds/rss/` devuelven 404 en vivo.
+
+Si en algún momento encontrás/confirmás una URL real para alguna de
+estas tres, activarla es solo un `update` (ver sección de abajo) — no
+hace falta tocar código ni redeployar.
 
 **Dato verificado, no inferido:** Reuters discontinuó sus feeds RSS
 públicos en junio de 2020. Para esa fuente no hay URL que valga la
@@ -43,11 +54,11 @@ que rompa sin aviso).
    npm install
    npm run ingest
    ```
-   Con el seed default, esto va a intentar traer
-   `https://albertoades.substack.com/feed`. Si el 404 confirma que
-   Ades tiene el RSS desactivado en su config de Substack, vas a
-   verlo clarito en la consola y en `ingestion_runs.error_message` —
-   ese es justamente el caso que antes quedaba invisible.
+   Con las 4 fuentes activas (ver estado abajo), esto debería traer
+   e insertar artículos reales sin error. Si alguna fuente falla en
+   el futuro (feed movido, timeout, etc.), lo vas a ver clarito en la
+   consola y en `ingestion_runs.error_message` — ese es justamente el
+   caso que antes quedaba invisible.
 4. **GitHub Actions**: en el repo, `Settings → Secrets and variables →
    Actions`, cargá `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` como
    secrets. El workflow en `.github/workflows/ingest.yml` corre todos

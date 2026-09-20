@@ -53,17 +53,17 @@ create table if not exists ingestion_runs (
 create index if not exists idx_ingestion_runs_source_started
   on ingestion_runs (source_id, started_at desc);
 
--- Seed inicial de fuentes. Solo Ades tiene feed_url cargada y active=true
--- porque es la única que pude fundamentar (patrón estándar /feed de
--- Substack). El resto arranca inactiva: activalas vos a medida que
--- confirmes la URL real de cada una (ver README).
+-- Seed inicial de fuentes. Las 4 con feed_url + active=true fueron
+-- confirmadas EN VIVO (fetch real, HTTP 200, XML válido) el 20/9/2026 —
+-- ver detalle de cada URL en el README. El resto sigue inactiva porque
+-- no encontramos un feed RSS real que confirmar (ver README).
 insert into sources (id, name, category, feed_url, source_type, active) values
   ('ades-parte-diario', 'Parte Diario (Alberto Ades)', 'macro', 'https://albertoades.substack.com/feed', 'rss', true),
   ('reuters-business',  'Reuters Business',            'macro',           null, 'scrape', false), -- RSS discontinuado por Reuters en 2020, confirmado
-  ('infobae-economia',  'Infobae Economía',            'macro',           null, 'rss',    false), -- feed_url sin confirmar
-  ('ambito',            'Ámbito',                      'macro',           null, 'rss',    false), -- feed_url sin confirmar
+  ('infobae-economia',  'Infobae Economía',            'macro',           'https://www.infobae.com/arc/outboundfeeds/rss/category/economia/', 'rss', true),
+  ('ambito',            'Ámbito',                      'macro',           'https://www.ambito.com/rss/pages/economia.xml', 'rss', true),
   ('bloomberg-linea',   'Bloomberg Línea',              'macro',           null, 'rss',    false), -- feed_url sin confirmar
-  ('ole',               'Olé',                          'deportes',        null, 'rss',    false), -- feed_url sin confirmar
-  ('espn-arg',          'ESPN Argentina',              'deportes',        null, 'rss',    false), -- feed_url sin confirmar
-  ('tyc-sports',        'TyC Sports',                  'deportes',        null, 'rss',    false)  -- feed_url sin confirmar
+  ('ole',               'Olé',                          'deportes',        'https://www.ole.com.ar/rss/ultimas-noticias', 'rss', true),
+  ('espn-arg',          'ESPN Argentina',              'deportes',        null, 'rss',    false), -- probado en vivo 20/9/2026: espn.com.ar redirige roto, no hay feed confirmado
+  ('tyc-sports',        'TyC Sports',                  'deportes',        null, 'rss',    false)  -- probado en vivo 20/9/2026: /feed y /arc/outboundfeeds/rss/ dan 404
 on conflict (id) do nothing;
