@@ -58,7 +58,12 @@ create index if not exists idx_ingestion_runs_source_started
 -- ver detalle de cada URL en el README. El resto sigue inactiva porque
 -- no encontramos un feed RSS real que confirmar (ver README).
 insert into sources (id, name, category, feed_url, source_type, active) values
-  ('ades-parte-diario', 'Parte Diario (Alberto Ades)', 'macro', 'https://albertoades.substack.com/feed', 'rss', true),
+  -- Ojo: NO es la URL directa de Substack (esa está bloqueada con 403 para
+  -- IPs de datacenter, incluido GitHub Actions — ver README). Este feed_url
+  -- es un puente vía email: Tomás recibe el newsletter en Gmail, un filtro
+  -- lo reenvía a una dirección de Kill the Newsletter, que expone lo
+  -- recibido como Atom feed real. Mismo contenido, sin el bloqueo.
+  ('ades-parte-diario', 'Parte Diario (Alberto Ades)', 'macro', 'https://kill-the-newsletter.com/feeds/8m1yf4ism3sdw4qfpuwr.xml', 'rss', true),
   ('reuters-business',  'Reuters Business',            'macro',           null, 'scrape', false), -- RSS discontinuado por Reuters en 2020, confirmado
   ('infobae-economia',  'Infobae Economía',            'macro',           'https://www.infobae.com/arc/outboundfeeds/rss/category/economia/', 'rss', true),
   ('ambito',            'Ámbito',                      'macro',           'https://www.ambito.com/rss/pages/economia.xml', 'rss', true),

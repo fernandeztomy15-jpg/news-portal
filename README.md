@@ -19,10 +19,32 @@ proyecto: solo ingesta y persistencia, sin frontend todavía.
 
 Confirmadas en vivo y activas (fetch real, HTTP 200, XML válido):
 
-- **Ades — Parte Diario**: `https://albertoades.substack.com/feed`
+- **Ades — Parte Diario**: `https://kill-the-newsletter.com/feeds/8m1yf4ism3sdw4qfpuwr.xml`
+  (⚠️ NO es el feed directo de Substack — ver "Caso especial: Ades" abajo)
 - **Infobae Economía**: `https://www.infobae.com/arc/outboundfeeds/rss/category/economia/`
 - **Ámbito Economía**: `https://www.ambito.com/rss/pages/economia.xml`
 - **Olé**: `https://www.ole.com.ar/rss/ultimas-noticias`
+
+### Caso especial: Ades (Substack bloquea a GitHub Actions)
+
+El feed directo (`https://albertoades.substack.com/feed`) funciona
+perfecto desde una laptop, pero devuelve **403** desde los runners de
+GitHub Actions — Substack/Cloudflare bloquea IPs de datacenter para
+rutas de feed, sin importar el User-Agent. Es un problema conocido y
+documentado, no un bug de este proyecto.
+
+Solución elegida: **email → RSS**, sin scraping y sin depender de que
+Substack le permita el paso a GitHub.
+1. Tomás ya está suscripto a Parte Diario con su Gmail normal (Substack
+   ve un suscriptor legítimo, no bloquea nada).
+2. Un filtro de Gmail reenvía automáticamente esos mails a una
+   dirección dedicada de **kill-the-newsletter.com**.
+3. Kill the Newsletter expone lo que recibe como un feed Atom real —
+   eso es lo que está cargado en `feed_url` para `ades-parte-diario`.
+
+Si algún día el feed de Ades aparece vacío en `ingestion_runs`, lo
+primero a revisar es que el filtro de Gmail siga activo (no un fetch
+roto de nuestro lado).
 
 Sin RSS confirmado, quedan inactivas (`active = false`, `feed_url =
 null`) en `supabase/schema.sql`:
