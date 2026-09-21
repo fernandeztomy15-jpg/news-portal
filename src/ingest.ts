@@ -1,6 +1,17 @@
 import "dotenv/config";
 import { supabase, type SourceRow } from "./lib/supabase.js";
-import { fetchFeed } from "./lib/rss.js";
+import { fetchFeed, type FeedItem } from "./lib/rss.js";
+
+// Direcciones que nunca son contenido real de un newsletter, aunque
+// terminen en un feed generado por un puente email->RSS (ej. Kill the
+// Newsletter). El caso concreto que motivó esto: la verificación de
+// reenvío de Gmail queda en el mismo buzón que el newsletter reenviado
+// y, sin este filtro, se ingiere como si fuera un artículo más.
+const NON_CONTENT_AUTHORS = new Set(["forwarding-noreply@google.com"]);
+
+function isRealContent(item: FeedItem): boolean {
+  return !item.author || !NON_CONTENT_AUTHORS.has(item.author);
+}
 
 async function getActiveSources(): Promise<SourceRow[]> {
   const { data, error } = await supabase
@@ -60,7 +71,7 @@ async function ingestSource(source: SourceRow) {
     return;
   }
 
-  const rows = result.items.map((item) => ({
+  const rows = result.items.filter(isRealContent).map((item) => ({
     source_id: source.id,
     category: source.category,
     title: item.title,

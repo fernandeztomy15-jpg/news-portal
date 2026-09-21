@@ -14,6 +14,7 @@ export type FeedItem = {
   url: string;
   summary: string | null;
   publishedAt: string | null; // ISO string o null si el feed no lo trae
+  author: string | null;
   raw: unknown;
 };
 
@@ -39,6 +40,7 @@ export async function fetchFeed(
         url: item.link!.trim(),
         summary: item.contentSnippet ?? item.summary ?? null,
         publishedAt: item.isoDate ?? item.pubDate ?? null,
+        author: (item as { author?: string }).author ?? item.creator ?? null,
         raw: item,
       }));
 
