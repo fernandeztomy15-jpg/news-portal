@@ -36,34 +36,32 @@ export function FeedbackButtons({ articleId, liked }: FeedbackButtonsProps) {
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="mt-1 flex gap-4">
       <button
         type="button"
         disabled={pending}
         onClick={() => sendFeedback(true)}
         aria-pressed={currentLiked === true}
-        aria-label="Me gusta"
-        className={`rounded px-2 py-1 text-lg leading-none transition-colors disabled:opacity-50 ${
+        className={`border-b text-xs transition-colors disabled:opacity-50 ${
           currentLiked === true
-            ? "bg-green-100 dark:bg-green-900"
-            : "bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            ? "border-accent text-accent"
+            : "border-transparent text-ink-muted hover:border-ink hover:text-ink"
         }`}
       >
-        👍
+        Más de esto
       </button>
       <button
         type="button"
         disabled={pending}
         onClick={() => sendFeedback(false)}
         aria-pressed={currentLiked === false}
-        aria-label="No me gusta"
-        className={`rounded px-2 py-1 text-lg leading-none transition-colors disabled:opacity-50 ${
+        className={`border-b text-xs transition-colors disabled:opacity-50 ${
           currentLiked === false
-            ? "bg-red-100 dark:bg-red-900"
-            : "bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            ? "border-accent text-accent"
+            : "border-transparent text-ink-muted hover:border-ink hover:text-ink"
         }`}
       >
-        👎
+        Menos de esto
       </button>
     </div>
   );

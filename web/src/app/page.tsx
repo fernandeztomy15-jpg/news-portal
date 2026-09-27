@@ -23,6 +23,15 @@ const CATEGORY_LABELS: Record<(typeof CATEGORY_ORDER)[number], string> = {
   descubrimiento: "Descubrimiento",
 };
 
+function formatTodayLabel(now: Date): string {
+  const label = now.toLocaleDateString("es-AR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 export default async function Home() {
   const { data, error } = await supabase
     .from("articles")
@@ -49,22 +58,33 @@ export default async function Home() {
   );
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-4 py-10">
-      <h1 className="text-2xl font-semibold">Digest de noticias</h1>
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-10">
+      <header>
+        <h1 className="text-xl font-semibold tracking-tight">Tu digest</h1>
+        <p className="mt-0.5 text-sm text-ink-muted">
+          {formatTodayLabel(new Date())}
+        </p>
+      </header>
       {CATEGORY_ORDER.map((category) => {
         const articles = grouped.get(category) ?? [];
 
         return (
-          <section key={category} className="flex flex-col gap-4">
-            <h2 className="text-lg font-semibold">
-              {CATEGORY_LABELS[category]}
-            </h2>
+          <section key={category} className="flex flex-col">
+            <div className="mb-3 flex items-baseline justify-between border-b border-rule-strong pb-1.5">
+              <h2 className="font-semibold text-accent">
+                {CATEGORY_LABELS[category]}
+              </h2>
+              {articles.length > 0 && (
+                <span className="text-xs text-ink-faint">
+                  {articles.length}{" "}
+                  {articles.length === 1 ? "nota" : "notas"}
+                </span>
+              )}
+            </div>
             {articles.length === 0 ? (
-              <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Sin novedades hoy
-              </p>
+              <p className="text-sm text-ink-muted">Sin novedades hoy</p>
             ) : (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col">
                 {articles.map((article) => (
                   <ArticleCard key={article.id} article={article} />
                 ))}
