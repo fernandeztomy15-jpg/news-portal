@@ -9,6 +9,7 @@ import {
   scoreArticles,
   type ArticleScoreResult,
 } from "./lib/anthropicClient.js";
+import { MAX_ARTICLES_PER_CATEGORY, selectOverflowIds } from "./lib/categoryCap.js";
 
 // Las 5 categorías de interés fijas del usuario (tienen fila en
 // category_weights). 'descubrimiento' es una categoría aparte, elegida
@@ -21,6 +22,8 @@ const INTEREST_CATEGORIES = [
   "emprendimientos",
   "deportes",
 ];
+
+const ALL_CATEGORIES = [...INTEREST_CATEGORIES, "descubrimiento"];
 
 const LIKED_SAMPLE_SIZE = 30;
 
@@ -254,6 +257,44 @@ async function persistArticleScore(result: ArticleScoreResult): Promise<void> {
   }
 }
 
+// Aplica el tope duro de MAX_ARTICLES_PER_CATEGORY sobre los artículos
+// actualmente activos (discarded=false) de cada categoría, sin importar
+// en qué corrida se hayan puntuado. Corre después de persistir los
+// resultados del scoring, como red de seguridad independiente del
+// criterio de descarte de la LLM (ver categoryCap.ts).
+async function enforceCategoryCap(): Promise<void> {
+  for (const category of ALL_CATEGORIES) {
+    const { data, error } = await supabase
+      .from("articles")
+      .select("id, score")
+      .eq("category", category)
+      .eq("discarded", false);
+
+    if (error) {
+      throw new Error(
+        `No pude leer artículos activos de '${category}' para aplicar el tope: ${error.message}`
+      );
+    }
+
+    const overflowIds = selectOverflowIds(
+      (data ?? []) as Array<{ id: string; score: number | null }>,
+      MAX_ARTICLES_PER_CATEGORY
+    );
+    if (overflowIds.length === 0) continue;
+
+    const { error: updateError } = await supabase
+      .from("articles")
+      .update({ discarded: true })
+      .in("id", overflowIds);
+
+    if (updateError) {
+      throw new Error(
+        `No pude aplicar el tope de ${MAX_ARTICLES_PER_CATEGORY} en '${category}': ${updateError.message}`
+      );
+    }
+  }
+}
+
 function chunk<T>(items: T[], size: number): T[][] {
   const batches: T[][] = [];
   for (let i = 0; i < items.length; i += size) {
@@ -434,6 +475,10 @@ async function main() {
         }
       }
     }
+
+    // Paso 9.5: tope duro por categoría — red de seguridad además del
+    // criterio de descarte de la LLM (ver enforceCategoryCap).
+    await enforceCategoryCap();
 
     // Paso 10: cerrar la corrida con el costo total (Llamada #1 + todas
     // las llamadas de scoring) y el resumen de lo REALMENTE puntuado
