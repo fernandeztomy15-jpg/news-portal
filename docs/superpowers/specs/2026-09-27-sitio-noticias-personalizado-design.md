@@ -21,11 +21,14 @@ decisiones previas, pero reusar lo que sigue teniendo sentido.
 ## 2. Alcance
 
 **Incluido:**
-- 5 categorías fijas: `macro`, `tech`, `emprendimientos`, `deportes`,
-  `descubrimiento`.
+- 6 categorías fijas: `macro`, `mercado`, `tech`, `emprendimientos`,
+  `deportes`, `descubrimiento`. `macro` es contexto macroeconómico
+  (inflación, actividad, política económica); `mercado` es específicamente
+  mercados financieros (acciones, bonos, dólar, tasas) — se separaron
+  porque son lecturas distintas aunque ambas sean "finanzas".
 - Fuentes RSS ya confirmadas (Ades, Infobae, Ámbito, Olé) + WSJ (RSS
   público, sin login) + una búsqueda de Google News RSS por cada una de
-  las 4 categorías de interés.
+  las 5 categorías de interés (todas menos descubrimiento).
 - Un agente de curación que corre 2 veces al día, usa Claude Haiku 4.5,
   y decide qué mostrar, con qué prioridad y por qué.
 - Aprendizaje por like/dislike vía pesos de categoría, ajustados en el
@@ -63,7 +66,7 @@ GitHub Actions (cron, 2x/día)
         b. Llamada LLM #1 (chica): elige tema de "descubrimiento"
         c. Busca ese tema en Google News RSS (código, sin LLM)
         d. Llamada LLM #2: puntúa/descarta todos los artículos nuevos
-           (4 categorías de interés + descubrimiento)
+           (5 categorías de interés + descubrimiento)
         e. Guarda score/reason/discarded en `articles`,
            tokens/costo/tema en `curation_runs`
 
@@ -93,7 +96,7 @@ alter table articles alter column source_id drop not null;
 -- los artículos de "descubrimiento" no tienen una fila fija en `sources`
 
 create table category_weights (
-  category    text primary key,   -- macro | tech | emprendimientos | deportes
+  category    text primary key,   -- macro | mercado | tech | emprendimientos | deportes
                                     -- (descubrimiento NO tiene peso)
   weight      numeric not null default 1.0,
   updated_at  timestamptz not null default now()
@@ -124,11 +127,17 @@ falta la fila en la tabla):
 
 | id | category | feed_url | source_type |
 |---|---|---|---|
-| `wsj-markets` | macro | `https://feeds.content.dowjones.io/public/rss/RSSMarketsMain` (confirmado en vivo, 27/9/2026) | rss |
+| `wsj-markets` | mercado | `https://feeds.content.dowjones.io/public/rss/RSSMarketsMain` (confirmado en vivo, 27/9/2026) | rss |
 | `google-news-macro` | macro | `https://news.google.com/rss/search?q=econom%C3%ADa+argentina&hl=es-419` | rss |
+| `google-news-mercado` | mercado | `https://news.google.com/rss/search?q=d%C3%B3lar+bonos+acciones+argentina&hl=es-419` | rss |
 | `google-news-tech` | tech | `https://news.google.com/rss/search?q=tecnolog%C3%ADa&hl=es-419` | rss |
 | `google-news-emprendimientos` | emprendimientos | `https://news.google.com/rss/search?q=startups+argentina&hl=es-419` | rss |
 | `google-news-deportes` | deportes | `https://news.google.com/rss/search?q=deportes+argentina&hl=es-419` | rss |
+
+Nota: `wsj-markets` pasa de `macro` a `mercado` respecto de lo que se
+había planteado antes de sumar esta categoría — tiene más sentido ahí,
+es contenido de mercados financieros (acciones, tasas, bonos), no de
+macroeconomía.
 
 Estas queries son un punto de partida editable — igual que con las
 fuentes RSS existentes, cambiarlas es un `update`, no requiere tocar
@@ -157,10 +166,10 @@ a la corrida del LLM.
    - los pesos actuales de `category_weights`,
    - una muestra de títulos de artículos con `liked=true`/`liked=false`
      recientes (para dar contexto de gusto),
-   - todos los artículos con `curated_at is null` de las 4 categorías de
+   - todos los artículos con `curated_at is null` de las 5 categorías de
      interés + los recién traídos de descubrimiento,
    y devuelve, por artículo: `{id, score (0-100), reason, discard}`.
-   - Para las 4 categorías de interés: el criterio es relevancia según
+   - Para las 5 categorías de interés: el criterio es relevancia según
      pesos + historial de gustos.
    - Para descubrimiento: instrucción explícita de **ignorar** los pesos
      de afinidad — el criterio es solo interés/calidad general.
@@ -185,7 +194,7 @@ hecho en el brainstorming), muy por debajo del tope de $5.
 ## 7. Frontend / UX
 
 - Next.js (App Router) + Tailwind, deployado en Vercel, sin login.
-- Una sola página, 5 secciones en orden fijo: macro, tech,
+- Una sola página, 6 secciones en orden fijo: macro, mercado, tech,
   emprendimientos, deportes, descubrimiento.
 - Cada sección lee de Supabase (server component, sin API intermedia):
   artículos con `discarded=false`, `curated_at` en las últimas 48hs,
