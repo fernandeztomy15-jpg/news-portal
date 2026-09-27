@@ -87,6 +87,24 @@ que rompa sin aviso).
    los días a las 8am ART, y también lo podés disparar a mano desde
    la pestaña Actions (`workflow_dispatch`).
 
+## Migraciones
+
+Después de correr `supabase/schema.sql`, ejecutá el contenido de
+`supabase/migrations/0002_curation_and_market.sql` en el SQL editor de
+Supabase. Esta migración:
+
+- Agrega columnas a `articles` para curación: `score`, `reason`,
+  `curated_at`, `discarded`.
+- Hace nullable `articles.source_id` (para artículos sin fuente
+  determinada).
+- Crea tabla `category_weights` (pesos de categorías para la curación).
+- Crea tabla `curation_runs` (log de cada corrida de curación del
+  agente LLM).
+- Inserta las 5 categorías base con peso `1.0`: macro, mercado, tech,
+  emprendimientos, deportes.
+- Inserta 6 fuentes nuevas: WSJ Markets + Google News RSS para cada
+  categoría base.
+
 ## Cómo sumar una fuente nueva
 
 Si tiene RSS confirmado:
