@@ -69,27 +69,65 @@ export interface ScoreArticlesResult {
 /**
  * Le pide a la LLM que puntúe una lista de artículos candidatos para el
  * feed personalizado del lector (ver reglas de scoring en curationPrompt.ts).
+ *
+ * Ojo: acá NO usamos `client.messages.parse()` como en pickDiscoveryTopic.
+ * Ese helper hace `create()` + parseo en una sola promesa: si el parseo
+ * falla (por ejemplo, JSON truncado porque la respuesta pisó
+ * `max_tokens`), el error se tira DESDE ADENTRO de esa promesa y perdemos
+ * el `Message` crudo — no hay forma de distinguir "se truncó" de
+ * "el JSON vino mal formado por otra razón". Llamando a `create()`
+ * directamente conservamos el `Message` crudo (con `stop_reason`) pase lo
+ * que pase con el parseo, así podemos dar un mensaje de error específico.
+ * El caller (curate.ts) igual manda candidatos en lotes de ~50-80 para
+ * que este límite no se toque en la práctica; este chequeo es una red de
+ * seguridad para cuando un lote puntual resulte más pesado de lo previsto.
  */
 export async function scoreArticles(
   input: Parameters<typeof buildScoringPrompt>[0]
 ): Promise<ScoreArticlesResult> {
-  const response = await client.messages.parse({
+  const outputFormat = zodOutputFormat(ScoringResponseSchema);
+
+  const response = await client.messages.create({
     model: HAIKU_4_5_MODEL_ID,
     max_tokens: MAX_TOKENS,
     messages: [{ role: "user", content: buildScoringPrompt(input) }],
     output_config: {
-      format: zodOutputFormat(ScoringResponseSchema),
+      format: outputFormat,
     },
   });
 
-  if (response.parsed_output === null) {
+  if (response.stop_reason === "max_tokens") {
     throw new Error(
-      "scoreArticles: la respuesta de Anthropic no pudo parsearse según ScoringResponseSchema."
+      `scoreArticles: la respuesta de Anthropic se truncó (stop_reason=max_tokens) ` +
+        `con ${input.candidates.length} candidatos en el lote. La respuesta quedó ` +
+        `incompleta y no se puede parsear — probá con un batch más chico de candidatos.`
+    );
+  }
+
+  const textBlock = response.content.find(
+    (block): block is Extract<typeof block, { type: "text" }> =>
+      block.type === "text"
+  );
+
+  if (!textBlock) {
+    throw new Error(
+      "scoreArticles: la respuesta de Anthropic no incluyó ningún bloque de texto."
+    );
+  }
+
+  let parsed: { articles: ArticleScoreResult[] };
+  try {
+    parsed = outputFormat.parse(textBlock.text);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `scoreArticles: la respuesta de Anthropic no pudo parsearse según ScoringResponseSchema ` +
+        `(stop_reason=${response.stop_reason ?? "desconocido"}): ${message}`
     );
   }
 
   return {
-    results: response.parsed_output.articles,
+    results: parsed.articles,
     inputTokens: response.usage.input_tokens,
     outputTokens: response.usage.output_tokens,
   };

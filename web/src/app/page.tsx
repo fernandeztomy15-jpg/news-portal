@@ -7,6 +7,13 @@ import {
 } from "@/lib/queries";
 import { ArticleCard } from "./components/ArticleCard";
 
+// El digest se arma con datos que cambian dos veces por día (corrida de
+// curación por GitHub Actions) y con feedback de likes/dislikes en
+// cualquier momento. Sin esto, Next.js prerenderiza la página una sola
+// vez en build time y el digest queda congelado para siempre en
+// producción — justamente lo opuesto al propósito de este proyecto.
+export const dynamic = "force-dynamic";
+
 const CATEGORY_LABELS: Record<(typeof CATEGORY_ORDER)[number], string> = {
   macro: "Macro",
   mercado: "Mercado",

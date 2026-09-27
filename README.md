@@ -136,6 +136,7 @@ El agente no puede ejecutarlos — son pasos manuales que debés hacer tú.
 
 1. **Supabase — Producción**
    - Si todavía no lo hiciste, ejecutá el contenido de `supabase/schema.sql` en el SQL editor de tu proyecto de Supabase de **producción**. Esto crea las tablas base y carga la fuente de Ades como seed activo.
+   - Después, ejecutá también el contenido de `supabase/migrations/0002_curation_and_market.sql` en el mismo SQL editor. Sin este paso el proyecto no funciona: faltan las columnas de curación en `articles` (`score`, `reason`, `curated_at`, `discarded`), las tablas `category_weights` y `curation_runs`, y las 6 fuentes nuevas (WSJ Markets + Google News por categoría). Ver sección "Migraciones" más arriba para el detalle completo.
 
 2. **Vercel**
    - Conectá el repo a Vercel configurando **root directory = `web/`** (ahí está el servidor Next.js).
@@ -159,7 +160,9 @@ El agente no puede ejecutarlos — son pasos manuales que debés hacer tú.
 
 ### Notas sobre producción
 
-- El workflow en `.github/workflows/ingest.yml` corre **automáticamente dos veces por día** (8am y 18hs ART) una vez deployado a Vercel.
+- Vercel y GitHub Actions son dos piezas de infraestructura **separadas e independientes**, no una consecuencia de la otra:
+  - **Vercel** solo sirve el frontend Next.js (lee de Supabase en cada request — ver `dynamic = "force-dynamic"` en `web/src/app/page.tsx`). No corre ningún cron ni ejecuta `ingest`/`curate`.
+  - **GitHub Actions** (`.github/workflows/ingest.yml`) es lo que corre el cron: **dos veces por día** (8am y 18hs ART) ejecuta `npm run ingest` y después `npm run curate`, sin importar si el frontend está deployado en Vercel, en otro lado, o en ningún lado. Deployar a Vercel NO activa ni depende de este cron — hay que configurar los secrets de GitHub Actions (paso 3 de este checklist) por separado para que la curación corra.
 - Para debugging: revisá los logs en GitHub Actions y en las tablas `ingestion_runs` y `curation_runs` de Supabase.
 - Si una fuente falla, lo vas a ver en `ingestion_runs.error_message` — eso es justamente lo que antes quedaba invisible.
 
