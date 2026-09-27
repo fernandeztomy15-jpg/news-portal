@@ -82,10 +82,17 @@ que rompa sin aviso).
    consola y en `ingestion_runs.error_message` — ese es justamente el
    caso que antes quedaba invisible.
 4. **GitHub Actions**: en el repo, `Settings → Secrets and variables →
-   Actions`, cargá `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` como
-   secrets. El workflow en `.github/workflows/ingest.yml` corre todos
-   los días a las 8am ART, y también lo podés disparar a mano desde
-   la pestaña Actions (`workflow_dispatch`).
+   Actions`, cargá estos secrets:
+   - `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` (necesarios para la ingesta).
+   - `ANTHROPIC_API_KEY` (necesario para la curación de artículos con el agente LLM).
+   
+   El workflow en `.github/workflows/ingest.yml` corre automáticamente
+   **dos veces por día**: a las 8am y a las 18hs ART. En cada corrida:
+   - Primero ejecuta `npm run ingest` (trae nuevos artículos de los feeds RSS).
+   - Luego ejecuta `npm run curate` (evalúa y cura el contenido con Claude).
+   
+   También lo podés disparar a mano desde la pestaña Actions (`workflow_dispatch`)
+   para testear o verificar en tiempo real.
 
 ## Migraciones
 
