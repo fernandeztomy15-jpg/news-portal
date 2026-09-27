@@ -7,6 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "curate": "tsx src/curate.ts",
     "ingest": "tsx src/ingest.ts",
     "typecheck": "tsc --noEmit"
   },
