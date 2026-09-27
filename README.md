@@ -127,6 +127,42 @@ dedicado — eso es fase 2, no está en este scaffold. La tabla ya tiene
 el campo `source_type = 'scrape'` reservado para cuando lo
 construyamos.
 
+## Deployment
+
+Este checklist cubre los pasos que **requieren tus credenciales propias** en Vercel, GitHub y Anthropic.
+El agente no puede ejecutarlos — son pasos manuales que debés hacer tú.
+
+### Checklist de Deploy (ejecución manual):
+
+1. **Supabase — Producción**
+   - Si todavía no lo hiciste, ejecutá el contenido de `supabase/schema.sql` en el SQL editor de tu proyecto de Supabase de **producción**. Esto crea las tablas base y carga la fuente de Ades como seed activo.
+
+2. **Vercel**
+   - Conectá el repo a Vercel configurando **root directory = `web/`** (ahí está el servidor Next.js).
+   - Cargá las variables de entorno de Vercel:
+     - `SUPABASE_URL` (Project Settings → API)
+     - `SUPABASE_SERVICE_ROLE_KEY` (Project Settings → API, la *service role key* — no la `anon`)
+
+3. **GitHub Actions Secrets**
+   - Asegurate de que estos secrets estén cargados en el repo (`Settings → Secrets and variables → Actions`):
+     - `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` (para la ingesta)
+     - `ANTHROPIC_API_KEY` (para la curación con Claude — ver sección "Setup" más arriba)
+
+4. **Anthropic API Spend Cap ($5/mes)**
+   - Andá a https://console.anthropic.com, buscá la API key que usás en este proyecto, y configurá un **límite de gasto de $5 por mes**.
+   - Esto es crítico: evita sorpresas de billing si la curación (`npm run curate`) consume más de lo esperado.
+
+5. **Verificación End-to-End**
+   - Abrí la URL de Vercel y confirmá que carga (el digest puede estar vacío si todavía no corriste curación).
+   - Disparate manualmente el workflow `ingest` desde la pestaña Actions (`workflow_dispatch`) para ver el flujo completo.
+   - Refrescá la página de Vercel y confirmá que aparecen artículos con scores de curación.
+
+### Notas sobre producción
+
+- El workflow en `.github/workflows/ingest.yml` corre **automáticamente dos veces por día** (8am y 18hs ART) una vez deployado a Vercel.
+- Para debugging: revisá los logs en GitHub Actions y en las tablas `ingestion_runs` y `curation_runs` de Supabase.
+- Si una fuente falla, lo vas a ver en `ingestion_runs.error_message` — eso es justamente lo que antes quedaba invisible.
+
 ## Próximo paso sugerido
 
 Llevar esta carpeta a Claude Code en tu Mac (ya lo tenés instalado),
